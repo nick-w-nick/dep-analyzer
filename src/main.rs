@@ -1,5 +1,8 @@
 use clap::Parser;
-use dep_analyzer::{generate_summary, print_summary, print_table, DependencyAnalyzer, Pager};
+use dep_analyzer::{
+    find_external_usage, generate_summary, print_summary, print_table, print_usage,
+    DependencyAnalyzer, Pager,
+};
 use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
@@ -31,6 +34,11 @@ struct Args {
     /// Write output to a file instead of stdout
     #[arg(short, long)]
     output: Option<PathBuf>,
+
+    /// Find external files importing from this pattern (e.g., "~/legacy/**/*")
+    /// Excludes files within the pattern itself to show only external dependencies
+    #[arg(long)]
+    find_usage: Option<String>,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -41,6 +49,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     if results.is_empty() {
         println!("No TypeScript/JavaScript files found in the target directory.");
+        return Ok(());
+    }
+
+    // Handle --find-usage mode
+    if let Some(pattern) = args.find_usage {
+        let usage_results = find_external_usage(&results, &pattern)?;
+
+        if let Some(output_path) = args.output {
+            let mut file = fs::File::create(&output_path)?;
+            print_usage(&usage_results, &pattern, &mut file)?;
+            eprintln!("Output written to: {}", output_path.display());
+        } else {
+            let mut pager = Pager::new();
+            print_usage(&usage_results, &pattern, &mut pager)?;
+            pager.finish()?;
+        }
+
         return Ok(());
     }
 

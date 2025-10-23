@@ -14,6 +14,12 @@ A tool for analyzing TypeScript/JavaScript import dependencies.
   - **Table**: Clean table format showing import counts per file
   - **JSON**: Machine-readable format for further processing
 
+- **Reverse dependency lookup** (`--find-usage`):
+  - Find which files depend on legacy code before removing it
+  - Uses glob patterns to match import paths
+  - Excludes internal imports within the legacy code itself
+  - Shows only external dependencies that need updating
+
 - Configurable options:
   - Custom alias symbol for cross-feature imports
   - Filter to show only files with external dependencies
@@ -21,6 +27,8 @@ A tool for analyzing TypeScript/JavaScript import dependencies.
   - Write output to file
 
 ## Usage
+
+### Basic Analysis
 
 ```bash
 # Analyze current directory
@@ -44,6 +52,30 @@ dep-analyzer -f table --show-local
 # JSON output for scripting
 dep-analyzer -f json -o dependencies.json
 ```
+
+### Finding Legacy Code Dependencies
+
+Before removing legacy code, find what depends on it:
+
+```bash
+# Find what imports from a specific legacy path
+dep-analyzer --find-usage "~/Meetings/components/details/*"
+
+# Check multiple legacy paths with wildcards
+dep-analyzer --find-usage "~/legacy/**/*"
+
+# Save findings to file for review
+dep-analyzer --find-usage "~/OldFeature/*" -o cleanup-report.txt
+
+# Works with any alias symbol
+dep-analyzer --alias-symbol @ --find-usage "@/old-utils/*"
+```
+
+The tool will show:
+- Which files import from the pattern (excluding files within the pattern itself)
+- The specific import paths being used
+- Total count of external dependencies
+- Whether it's safe to delete (if no dependencies found)
 
 ## Output Formats
 
@@ -76,6 +108,36 @@ Clean table format showing import counts per file:
 └──────────────────────────────────┴────────┴─────────────┘
 ```
 
+### Usage Finder
+Shows external dependencies on legacy code:
+```
+=== EXTERNAL DEPENDENCIES ON: ~/Meetings/components/details/* ===
+
+Found 3 files importing from this path:
+
+📄 src/Dashboard/MeetingsList.tsx
+   • ~/Meetings/components/details/MeetingCard.tsx
+   • ~/Meetings/components/details/helper.ts
+
+📄 src/Calendar/EventView.tsx
+   • ~/Meetings/components/details/MeetingCard.tsx
+
+📄 src/Reports/index.ts
+   • ~/Meetings/components/details/utils.ts
+
+Total: 3 external dependencies
+
+⚠️  These files need to be updated before removing the legacy code.
+```
+
+Or if no dependencies found:
+```
+No external dependencies found for pattern: ~/OldFeature/*
+
+This means no files outside the pattern are importing from it.
+Safe to delete! ✓
+```
+
 ### JSON
 Machine-readable format for scripting and further processing.
 
@@ -89,7 +151,8 @@ src/
 ├── models.rs        # Data structures
 ├── output.rs        # Output formatting
 ├── pager.rs         # Automatic paging support
-└── summary.rs       # Summary generation
+├── summary.rs       # Summary generation
+└── usage_finder.rs  # Reverse dependency lookup
 ```
 
 ## Automatic Paging

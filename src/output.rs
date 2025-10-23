@@ -1,4 +1,5 @@
 use crate::models::{ImportAnalysis, Summary};
+use crate::usage_finder::UsageResult;
 use std::io::{self, Write};
 
 pub fn print_summary<W: Write>(summary: &Summary, writer: &mut W) -> io::Result<()> {
@@ -97,5 +98,38 @@ pub fn print_table<W: Write>(results: &[ImportAnalysis], show_local: bool, exter
         write!(writer, "┴{:─<7}", "")?;
     }
     writeln!(writer, "┘")?;
+    Ok(())
+}
+
+pub fn print_usage<W: Write>(results: &[UsageResult], pattern: &str, writer: &mut W) -> io::Result<()> {
+    if results.is_empty() {
+        writeln!(writer, "No external dependencies found for pattern: {}", pattern)?;
+        writeln!(writer, "\nThis means no files outside the pattern are importing from it.")?;
+        writeln!(writer, "Safe to delete! ✓")?;
+        return Ok(());
+    }
+
+    writeln!(writer, "=== EXTERNAL DEPENDENCIES ON: {} ===", pattern)?;
+    writeln!(writer, "\nFound {} file{} importing from this path:\n",
+        results.len(),
+        if results.len() == 1 { "" } else { "s" }
+    )?;
+
+    for usage in results {
+        let relative_path = usage.file_path
+            .strip_prefix(std::env::current_dir().unwrap_or_default())
+            .unwrap_or(&usage.file_path);
+
+        writeln!(writer, "📄 {}", relative_path.display())?;
+
+        for import in &usage.matching_imports {
+            writeln!(writer, "   • {}", import)?;
+        }
+        writeln!(writer)?;
+    }
+
+    writeln!(writer, "Total: {} external dependencies", results.len())?;
+    writeln!(writer, "\n⚠️  These files need to be updated before removing the legacy code.")?;
+
     Ok(())
 }
