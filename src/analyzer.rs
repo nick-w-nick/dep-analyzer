@@ -29,7 +29,7 @@ impl DependencyAnalyzer {
         for entry in WalkDir::new(&self.target_dir)
             .into_iter()
             .filter_map(|e| e.ok())
-            .filter(|e| self.is_typescript_file(e.path()))
+            .filter(|e| self.is_valid_file(e.path()))
         {
             let analysis = self.analyze_file(entry.path())?;
             results.push(analysis);
@@ -91,7 +91,7 @@ impl DependencyAnalyzer {
     }
 
 
-    fn is_typescript_file(&self, path: &Path) -> bool {
+    fn is_valid_file(&self, path: &Path) -> bool {
         path.extension()
             .and_then(|ext| ext.to_str())
             .map(|ext| matches!(ext, "ts" | "tsx" | "js" | "jsx"))
