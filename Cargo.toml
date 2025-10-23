@@ -1,0 +1,21 @@
+[package]
+name = "dep-analyzer"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "dep_analyzer"
+path = "src/lib.rs"
+
+[[bin]]
+name = "dep-analyzer"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4.4", features = ["derive"] }
+regex = "1.10"
+walkdir = "2.4"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+atty = "0.2"
+
